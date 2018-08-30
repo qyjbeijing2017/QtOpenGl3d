@@ -1,8 +1,8 @@
 #include "OpenGLWidget.h"
 #include <QOpenGLShader>
 #include <QOpenGLShaderProgram>
-#include <QMatrix4x4>
 #include <QOpenGLTexture>
+#include <QTime>
 
 OpenGLWidget::OpenGLWidget(QWidget *parent)
 	: QOpenGLWidget(parent)
@@ -12,6 +12,9 @@ OpenGLWidget::OpenGLWidget(QWidget *parent)
 
 OpenGLWidget::~OpenGLWidget()
 {
+	program->release();
+	ourTexture->release();
+	ourTexture1->release();
 }
 
 void OpenGLWidget::initializeGL()
@@ -22,95 +25,153 @@ void OpenGLWidget::initializeGL()
 	ourTexture = InitTexture("container.jpg");
 	ourTexture1 = InitTexture("awesomeface.png");
 
+
 	glClearColor(0.5f, 0.0f, 1.0f, 1.0f);
 	glEnable(GL_DEPTH_TEST);
+
+	int w = width();
+	int h = height();
+	modelMatrix = new QMatrix4x4;
+	viewMatrix = new QMatrix4x4;
+	projectMatrix = new QMatrix4x4;
+
+	viewMatrix->translate(0.0f, 0.0f, -3.0f);
+	projectMatrix->perspective(45.0f, (GLfloat)w / (GLfloat)h, 0.001f, 100.0f);
+
+	timer.start(12, this);
 }
 
 void OpenGLWidget::resizeGL(int w, int h)
 {
-
+	projectMatrix = new QMatrix4x4;
+	projectMatrix->perspective(45.0f, (GLfloat)w / (GLfloat)h, 0.001f, 100.0f);
 }
+
+#pragma region Vertex Data
+
+float positionData[] = {
+	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+	0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+	0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+	0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+	0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+	-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+	0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+	0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+	0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+	0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+};
+
+QVector3D cubePositions[] = {
+	QVector3D(0.0f,  0.0f,  0.0f),
+	QVector3D(2.0f,  5.0f, -15.0f),
+	QVector3D(-1.5f, -2.2f, -2.5f),
+	QVector3D(-3.8f, -2.0f, -12.3f),
+	QVector3D(2.4f, -0.4f, -3.5f),
+	QVector3D(-1.7f,  3.0f, -7.5f),
+	QVector3D(1.3f, -2.0f, -2.5f),
+	QVector3D(1.5f,  2.0f, -2.5f),
+	QVector3D(1.5f,  0.2f, -1.5f),
+	QVector3D(-1.3f,  1.0f, -1.5f)
+};
+
+//unsigned int indices[] = { // 注意索引从0开始! 
+//	3, 1, 0, // 第一个三角形
+//	3, 2, 1  // 第二个三角形
+//};
+#pragma endregion
+
 
 void OpenGLWidget::paintGL()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	// vertices array
-	GLfloat positionData[] = {
-		//  ---- 位置 ----       ---- 颜色 ----     - 纹理坐标 -
-		0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // 右上
-		0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // 右下
-		-0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // 左下
-		-0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // 左上
-	};
-	GLfloat colorData[] = {
-		1.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 1.0f };
-
-	unsigned int indices[] = { // 注意索引从0开始! 
-		3, 1, 0, // 第一个三角形
-		3, 2, 1  // 第二个三角形
-	};
 	program->bind();
 
+#pragma region vbo vao and ebo
 
 	// vertex buffer object
 	vbo.create();
 	vbo.bind();
 
-	// index buffer object
-	QOpenGLBuffer* ebo = new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
-	ebo->create();
-	ebo->bind();
-	ebo->allocate(indices, 6 * sizeof(unsigned int));
-
-	// vertex positions
-	vbo.allocate(positionData, 32 * sizeof(GLfloat));
+	vbo.allocate(positionData, 36 * 5 * sizeof(GLfloat));
 	GLuint vPosition = program->attributeLocation("VertexPosition");
-	program->setAttributeBuffer(vPosition, GL_FLOAT, 0, 3, 8 * sizeof(GLfloat));
+	program->setAttributeBuffer(vPosition, GL_FLOAT, 0, 3, 5 * sizeof(GLfloat));
 	glEnableVertexAttribArray(vPosition);
 
-
-	// vertex colors
-	GLuint vColor = program->attributeLocation("vColor");
-	program->setAttributeBuffer(vColor, GL_FLOAT, 3 * sizeof(GLfloat), 3, 8 * sizeof(GLfloat));
-	glEnableVertexAttribArray(vColor);
+	// index buffer object
+	//QOpenGLBuffer* ebo = new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
+	//ebo->create();
+	//ebo->bind();
+	//ebo->allocate(indices, 6 * sizeof(unsigned int));
+	// vertex positions
 
 	// vertex texCorrd
+
+#pragma endregion
+
+#pragma region Texture
 	GLuint vTexCoord = program->attributeLocation("vTexCoord");
-	program->setAttributeBuffer(vTexCoord, GL_FLOAT, 6 * sizeof(GLfloat), 2, 8 * sizeof(GLfloat));
+	program->setAttributeBuffer(vTexCoord, GL_FLOAT, 3 * sizeof(GLfloat), 2, 5 * sizeof(GLfloat));
 	glEnableVertexAttribArray(vTexCoord);
-
-
-	//// vertex colors
-	//vbo.write(9 * sizeof(GLfloat), colorData, 9 * sizeof(GLfloat));
-	//GLuint vColor = program->attributeLocation("VertexColor");
-	//program->setAttributeBuffer(vColor, GL_FLOAT, 9 * sizeof(GLfloat), 3, 0);
-	//glEnableVertexAttribArray(vColor);
-
-	// transform
-	int w = width();
-	int h = height();
-	QMatrix4x4 matrix;
-	matrix.perspective(45.0f, (GLfloat)w / (GLfloat)h, 0.001f, 100.0f);
-	matrix.translate(0.0, 0.0, -3.0);
-	//matrix.rotate(90.0f, 0.0f, 0.0f, 1.0f);
-	//matrix.scale(0.5f, 0.5f, 0.5f);
-
-	glPolygonMode(GL_FRONT, GL_LINE);
-	glPolygonMode(GL_FRONT, GL_FILL);
-	glEnable(GL_CULL_FACE);
-
-	program->setUniformValue("RotationMatrix", matrix);
 
 	ourTexture->bind(0);
 	program->setUniformValue("ourTexture", 0);
 	ourTexture1->bind(1);
 	program->setUniformValue("ourTexture1", 1);
-	
-	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
+#pragma endregion
+
+
+	program->setUniformValue("view", *viewMatrix);
+	program->setUniformValue("project", *projectMatrix);
+
+	for (unsigned int i = 0; i < 10; i++)
+	{
+		modelMatrix = new QMatrix4x4;
+		modelMatrix->translate(cubePositions[i]);
+		modelMatrix->rotate(QTime::currentTime().msecsSinceStartOfDay() * 0.01f, 0.5f, 1.0f, 0.0f);
+		program->setUniformValue("model", *modelMatrix);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+	}
+	vbo.release();
+
+	//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+}
+
+void OpenGLWidget::timerEvent(QTimerEvent * e)
+{
+	update();// GameLoop
 }
 
 void OpenGLWidget::creatShader(QString vertexShader, QString fragmentShader)

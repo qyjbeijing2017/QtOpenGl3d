@@ -4,7 +4,8 @@
 #include <QOpenGLWidget>
 #include <QOpenGLFunctions>
 #include <QOpenGLBuffer>
-
+#include <QBasicTimer>
+#include <QMatrix4x4>
 
 
 class QOpenGLShaderProgram;
@@ -21,13 +22,18 @@ protected:
 	void initializeGL();
 	void resizeGL(int w, int h);
 	void paintGL();
+	void timerEvent(QTimerEvent *e);
 
 private:
+	QBasicTimer timer;
 	QOpenGLShaderProgram * program;
 	QOpenGLBuffer vbo;
 	QOpenGLBuffer* ebo;
 	QOpenGLTexture* ourTexture;
 	QOpenGLTexture* ourTexture1;
+	QMatrix4x4* modelMatrix;
+	QMatrix4x4* viewMatrix;
+	QMatrix4x4* projectMatrix;
 
 	void creatShader(QString vertexShader, QString fragmentShader);
 

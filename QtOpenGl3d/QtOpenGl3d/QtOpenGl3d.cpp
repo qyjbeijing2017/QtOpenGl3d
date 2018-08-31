@@ -6,9 +6,9 @@ QtOpenGl3d::QtOpenGl3d(QWidget *parent)
 {
 	ui.setupUi(this);
 	m_openGLWidget = ui.openGLWidget;
-	//m_openGLWidget->window = this;
+	m_openGLWidget->window = this;
 	connect(m_openGLWidget, SIGNAL(debugLog(QString)), this, SLOT(myShaderLog(QString)));
-
+	
 
 
 }

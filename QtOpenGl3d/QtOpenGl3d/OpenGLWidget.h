@@ -6,10 +6,13 @@
 #include <QOpenGLBuffer>
 #include <QBasicTimer>
 #include <QMatrix4x4>
+#include <QMouseEvent>
 
 
 class QOpenGLShaderProgram;
 class QOpenGLTexture;
+class Camera;
+class QtOpenGl3d;
 class OpenGLWidget : public QOpenGLWidget, protected QOpenGLFunctions
 {
 	Q_OBJECT
@@ -17,12 +20,28 @@ class OpenGLWidget : public QOpenGLWidget, protected QOpenGLFunctions
 public:
 	OpenGLWidget(QWidget *parent = 0);
 	~OpenGLWidget();
+	QtOpenGl3d* window;
 
 protected:
 	void initializeGL();
 	void resizeGL(int w, int h);
 	void paintGL();
 	void timerEvent(QTimerEvent *e);
+
+	
+
+
+	//鼠标点击事件
+	void mousePressEvent(QMouseEvent* event);
+	//鼠标移动事件
+	void mouseMoveEvent(QMouseEvent *event);
+	//鼠标释放事件
+	void mouseReleaseEvent(QMouseEvent *event);
+
+	
+	virtual void keyPressEvent(QKeyEvent *ev);
+	virtual void keyReleaseEvent(QKeyEvent *ev);
+
 
 private:
 	QBasicTimer timer;
@@ -32,13 +51,22 @@ private:
 	QOpenGLTexture* ourTexture;
 	QOpenGLTexture* ourTexture1;
 	QMatrix4x4* modelMatrix;
-	QMatrix4x4* viewMatrix;
 	QMatrix4x4* projectMatrix;
+
+	Camera* camera;
+
+	QPoint* mousePos;
+	bool rightDown = false;
+
+	QVector3D lightPos;
 
 	void creatShader(QString vertexShader, QString fragmentShader);
 
 	static QOpenGLTexture* InitTexture(const QString imagePath);
-
+	
+	float cameraPitch = 0.0f;
+	float cameraYaw = 0.0f;
+	const float sensitiveRotation = 0.2f;
 signals:
 	void debugLog(QString log);
 

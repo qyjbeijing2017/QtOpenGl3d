@@ -39,12 +39,18 @@
     <ClCompile Include="OpenGLWidget.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="QtOpenGl3d.h">
       <Filter>Header Files</Filter>
     </QtMoc>
     <QtMoc Include="OpenGLWidget.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="Camera.h">
       <Filter>Header Files</Filter>
     </QtMoc>
   </ItemGroup>

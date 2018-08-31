@@ -3,12 +3,17 @@
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
 #include <QTime>
+#include "Camera.h"
+#include "qopenglwindow.h"
+#include "QtOpenGl3d.h"
+#include <QtMath>
 
 OpenGLWidget::OpenGLWidget(QWidget *parent)
 	: QOpenGLWidget(parent)
 {
-
-}
+	mousePos = new QPoint();
+	this->grabKeyboard();
+}	
 
 OpenGLWidget::~OpenGLWidget()
 {
@@ -32,11 +37,14 @@ void OpenGLWidget::initializeGL()
 	int w = width();
 	int h = height();
 	modelMatrix = new QMatrix4x4;
-	viewMatrix = new QMatrix4x4;
 	projectMatrix = new QMatrix4x4;
 
-	viewMatrix->translate(0.0f, 0.0f, -3.0f);
 	projectMatrix->perspective(45.0f, (GLfloat)w / (GLfloat)h, 0.001f, 100.0f);
+
+	//camera = new Camera(QVector3D(0, 0, -3), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+	camera = new Camera(QVector3D(0, 0, 3), 180.0f, 0.0f, QVector3D(0, 1, 0));
+
+	lightPos = QVector3D(1.0f, 1.0f, 1.0f);
 
 	timer.start(12, this);
 }
@@ -50,47 +58,47 @@ void OpenGLWidget::resizeGL(int w, int h)
 #pragma region Vertex Data
 
 float positionData[] = {
-	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-	0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-	0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-	0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,  0.0f,  0.0f, -1.0f,
+	0.5f, -0.5f, -0.5f,   1.0f, 0.0f,  0.0f,  0.0f, -1.0f,
+	0.5f,  0.5f, -0.5f,   1.0f, 1.0f,  0.0f,  0.0f, -1.0f,
+	0.5f,  0.5f, -0.5f,   1.0f, 1.0f,  0.0f,  0.0f, -1.0f,
+	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,  0.0f,  0.0f, -1.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,  0.0f,  0.0f, -1.0f,
 
-	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-	0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-	0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-	0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-	-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  0.0f,  0.0f, 1.0f,
+	0.5f, -0.5f,  0.5f,   1.0f, 0.0f,  0.0f,  0.0f, 1.0f,
+	0.5f,  0.5f,  0.5f,   1.0f, 1.0f,  0.0f,  0.0f, 1.0f,
+	0.5f,  0.5f,  0.5f,   1.0f, 1.0f,  0.0f,  0.0f, 1.0f,
+	-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,  0.0f,  0.0f, 1.0f,
+	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  0.0f,  0.0f, 1.0f,
 
-	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-	-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,  -1.0f,  0.0f,  0.0f,
+	-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,  -1.0f,  0.0f,  0.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,  -1.0f,  0.0f,  0.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,  -1.0f,  0.0f,  0.0f,
+	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  -1.0f,  0.0f,  0.0f,
+	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,  -1.0f,  0.0f,  0.0f,
 
-	0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-	0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-	0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-	0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-	0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-	0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	0.5f,  0.5f,  0.5f,   1.0f, 0.0f,  1.0f,  0.0f,  0.0f,
+	0.5f,  0.5f, -0.5f,   1.0f, 1.0f,  1.0f,  0.0f,  0.0f,
+	0.5f, -0.5f, -0.5f,   0.0f, 1.0f,  1.0f,  0.0f,  0.0f,
+	0.5f, -0.5f, -0.5f,   0.0f, 1.0f,  1.0f,  0.0f,  0.0f,
+	0.5f, -0.5f,  0.5f,   0.0f, 0.0f,  1.0f,  0.0f,  0.0f,
+	0.5f,  0.5f,  0.5f,   1.0f, 0.0f,  1.0f,  0.0f,  0.0f,
 
-	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-	0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-	0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-	0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,  0.0f, -1.0f,  0.0f,
+	0.5f, -0.5f, -0.5f,   1.0f, 1.0f,  0.0f, -1.0f,  0.0f,
+	0.5f, -0.5f,  0.5f,   1.0f, 0.0f,  0.0f, -1.0f,  0.0f,
+	0.5f, -0.5f,  0.5f,   1.0f, 0.0f,  0.0f, -1.0f,  0.0f,
+	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  0.0f, -1.0f,  0.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,  0.0f, -1.0f,  0.0f,
 
-	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-	0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-	0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-	0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-	-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,  0.0f,  1.0f,  0.0f,
+	0.5f,  0.5f, -0.5f,  1.0f, 1.0f,   0.0f,  1.0f,  0.0f,
+	0.5f,  0.5f,  0.5f,  1.0f, 0.0f,   0.0f,  1.0f,  0.0f,
+	0.5f,  0.5f,  0.5f,  1.0f, 0.0f,   0.0f,  1.0f,  0.0f,
+	-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,  0.0f,  1.0f,  0.0f,
+	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,  0.0f,  1.0f,  0.0f
 };
 
 QVector3D cubePositions[] = {
@@ -110,6 +118,51 @@ QVector3D cubePositions[] = {
 //	3, 1, 0, // 第一个三角形
 //	3, 2, 1  // 第二个三角形
 //};
+
+
+//float vertices[] = {
+//	-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+//	0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+//	0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+//	0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+//	-0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+//	-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+//
+//	-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+//	0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+//	0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+//	0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+//	-0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+//	-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+//
+//	-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+//	-0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+//	-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+//	-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+//	-0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+//	-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+//
+//	0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+//	0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+//	0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+//	0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+//	0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+//	0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+//
+//	-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+//	0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+//	0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+//	0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+//	-0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+//	-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+//
+//	-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+//	0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+//	0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+//	0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+//	-0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+//	-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
+//};
 #pragma endregion
 
 
@@ -126,8 +179,16 @@ void OpenGLWidget::paintGL()
 
 	vbo.allocate(positionData, 36 * 5 * sizeof(GLfloat));
 	GLuint vPosition = program->attributeLocation("VertexPosition");
-	program->setAttributeBuffer(vPosition, GL_FLOAT, 0, 3, 5 * sizeof(GLfloat));
+	program->setAttributeBuffer(vPosition, GL_FLOAT, 0, 3, 8 * sizeof(GLfloat));
 	glEnableVertexAttribArray(vPosition);
+
+	GLuint vTexCoord = program->attributeLocation("vTexCoord");
+	program->setAttributeBuffer(vTexCoord, GL_FLOAT, 3 * sizeof(GLfloat), 2, 8 * sizeof(GLfloat));
+	glEnableVertexAttribArray(vTexCoord);
+
+	GLuint vNormal = program->attributeLocation("vNormal");
+	program->setAttributeBuffer(vNormal, GL_FLOAT, 5 * sizeof(GLfloat), 3, 8 * sizeof(GLfloat));
+	glEnableVertexAttribArray(vNormal);
 
 	// index buffer object
 	//QOpenGLBuffer* ebo = new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
@@ -141,9 +202,6 @@ void OpenGLWidget::paintGL()
 #pragma endregion
 
 #pragma region Texture
-	GLuint vTexCoord = program->attributeLocation("vTexCoord");
-	program->setAttributeBuffer(vTexCoord, GL_FLOAT, 3 * sizeof(GLfloat), 2, 5 * sizeof(GLfloat));
-	glEnableVertexAttribArray(vTexCoord);
 
 	ourTexture->bind(0);
 	program->setUniformValue("ourTexture", 0);
@@ -153,15 +211,18 @@ void OpenGLWidget::paintGL()
 #pragma endregion
 
 
-	program->setUniformValue("view", *viewMatrix);
+	program->setUniformValue("view", camera->View);
 	program->setUniformValue("project", *projectMatrix);
+	program->setUniformValue("lightPos", lightPos);
 
 	for (unsigned int i = 0; i < 10; i++)
 	{
 		modelMatrix = new QMatrix4x4;
 		modelMatrix->translate(cubePositions[i]);
-		modelMatrix->rotate(QTime::currentTime().msecsSinceStartOfDay() * 0.01f, 0.5f, 1.0f, 0.0f);
+		//modelMatrix->rotate(QTime::currentTime().msecsSinceStartOfDay() * 0.01f, 0.5f, 1.0f, 0.0f);
 		program->setUniformValue("model", *modelMatrix);
+
+
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 	}
 	vbo.release();
@@ -169,9 +230,93 @@ void OpenGLWidget::paintGL()
 	//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
+
+
+#pragma region Input
+
 void OpenGLWidget::timerEvent(QTimerEvent * e)
 {
 	update();// GameLoop
+}
+
+void OpenGLWidget::mousePressEvent(QMouseEvent * event)
+{
+	if (event->button() == Qt::RightButton)
+	{
+		rightDown = true;
+		mousePos->setX(event->x());
+		mousePos->setY(event->y());
+		cameraPitch = camera->RotationEuler.y();
+		cameraYaw = camera->RotationEuler.x();
+	}
+
+}
+
+void OpenGLWidget::mouseMoveEvent(QMouseEvent * event)
+{
+	if (rightDown)
+	{
+		
+		float xOffset = event->x() - mousePos->x();
+		float yOffset = event->y() - mousePos->y();
+		
+		cameraYaw += xOffset * sensitiveRotation;
+		cameraPitch += yOffset * sensitiveRotation;
+		if (cameraPitch > 89.0f)
+			cameraPitch = 89.0f;
+		if (cameraPitch < -89.0f)
+			cameraPitch = -89.0f;
+		
+		camera->CameraMove(camera->Position, cameraYaw, cameraPitch);
+		mousePos->setX(event->x());
+		mousePos->setY(event->y());
+		//QCursor::setPos(this->mapToGlobal(QPoint(100, 100)));
+	}
+}
+
+void OpenGLWidget::mouseReleaseEvent(QMouseEvent * event)
+{
+	if (event->button() == Qt::RightButton)
+	{
+		rightDown = false;
+	}
+}
+
+void OpenGLWidget::keyPressEvent(QKeyEvent * ev)
+{
+	QVector3D move;
+	
+	if (ev->key() == Qt::Key_W)
+	{
+		move += camera->Forward;
+	}
+	if (ev->key() == Qt::Key_A)
+	{
+		move -= camera->Right;
+	}
+	if (ev->key() == Qt::Key_S)
+	{
+		move -= camera->Forward;
+	}
+	if (ev->key() == Qt::Key_D)
+	{
+		move += camera->Right;
+	}	
+	if (ev->key() == Qt::Key_Space)
+	{
+		move += camera->Up;
+	}
+	if (ev->key() == Qt::Key_X)
+	{
+		move -= camera->Up;
+	}
+
+	camera->CameraMove(camera->Position + move, camera->RotationEuler.x(), camera->RotationEuler.y());
+
+}
+
+void OpenGLWidget::keyReleaseEvent(QKeyEvent * ev)
+{
 }
 
 void OpenGLWidget::creatShader(QString vertexShader, QString fragmentShader)
@@ -214,5 +359,8 @@ QOpenGLTexture* OpenGLWidget::InitTexture(const QString imagePath)
 	//tex->generateMipMaps();
 	return tex;
 }
+
+#pragma endregion
+
 
 

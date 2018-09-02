@@ -9,10 +9,12 @@
 #include <QMouseEvent>
 
 
+//class Input;
 class QOpenGLShaderProgram;
 class QOpenGLTexture;
 class Camera;
 class QtOpenGl3d;
+class Input;
 class OpenGLWidget : public QOpenGLWidget, protected QOpenGLFunctions
 {
 	Q_OBJECT
@@ -39,8 +41,8 @@ protected:
 	void mouseReleaseEvent(QMouseEvent *event);
 
 	
-	virtual void keyPressEvent(QKeyEvent *ev);
-	virtual void keyReleaseEvent(QKeyEvent *ev);
+	//virtual void keyPressEvent(QKeyEvent *ev);
+	//virtual void keyReleaseEvent(QKeyEvent *ev);
 
 
 private:
@@ -66,7 +68,10 @@ private:
 	
 	float cameraPitch = 0.0f;
 	float cameraYaw = 0.0f;
+
+	Input *input;
 	const float sensitiveRotation = 0.2f;
+	const float sensitiveMove = 0.3f;
 signals:
 	void debugLog(QString log);
 

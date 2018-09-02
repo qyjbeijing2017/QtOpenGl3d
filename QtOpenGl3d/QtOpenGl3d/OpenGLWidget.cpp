@@ -7,12 +7,14 @@
 #include "qopenglwindow.h"
 #include "QtOpenGl3d.h"
 #include <QtMath>
+#include "Input.h"
 
 OpenGLWidget::OpenGLWidget(QWidget *parent)
 	: QOpenGLWidget(parent)
 {
 	mousePos = new QPoint();
-	this->grabKeyboard();
+	//this->grabKeyboard();
+	input = Input::instance();
 }	
 
 OpenGLWidget::~OpenGLWidget()
@@ -47,6 +49,8 @@ void OpenGLWidget::initializeGL()
 	lightPos = QVector3D(1.0f, 1.0f, 1.0f);
 
 	timer.start(12, this);
+
+	//Input::getInstance();
 }
 
 void OpenGLWidget::resizeGL(int w, int h)
@@ -169,10 +173,41 @@ QVector3D cubePositions[] = {
 void OpenGLWidget::paintGL()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+#pragma region input
+
+	QVector3D move;
+	if (Input::instance()->GetKeyHold(Qt::Key_W))
+	{
+		move += camera->Forward;
+	}
+	if (Input::instance()->GetKeyHold(Qt::Key_A))
+	{
+		move -= camera->Right;
+	}
+	if (Input::instance()->GetKeyHold(Qt::Key_S))
+	{
+		move -= camera->Forward;
+	}
+	if (Input::instance()->GetKeyHold(Qt::Key_D))
+	{
+		move += camera->Right;
+	}
+	if (Input::instance()->GetKeyHold(Qt::Key_Space))
+	{
+		move += camera->Up;
+	}
+	if (Input::instance()->GetKeyHold(Qt::Key_X))
+	{
+		move -= camera->Up;
+	}
+	camera->CameraMove(camera->Position + move* sensitiveMove, camera->RotationEuler.x(), camera->RotationEuler.y());
+
+#pragma endregion
+
+#pragma region shaderProgram vbo vao and ebo
+
 	program->bind();
-
-#pragma region vbo vao and ebo
-
 	// vertex buffer object
 	vbo.create();
 	vbo.bind();
@@ -210,10 +245,13 @@ void OpenGLWidget::paintGL()
 
 #pragma endregion
 
-
+#pragma region set uniform	
 	program->setUniformValue("view", camera->View);
 	program->setUniformValue("project", *projectMatrix);
 	program->setUniformValue("lightPos", lightPos);
+#pragma endregion
+
+#pragma region Render
 
 	for (unsigned int i = 0; i < 10; i++)
 	{
@@ -225,9 +263,16 @@ void OpenGLWidget::paintGL()
 
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 	}
-	vbo.release();
-
 	//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+#pragma endregion
+
+#pragma region input & relase
+	vbo.release();		  //vboÊÍ·Å
+	input->keyHold();	  //input´¦Àí
+
+#pragma endregion
+
 }
 
 
@@ -280,43 +325,6 @@ void OpenGLWidget::mouseReleaseEvent(QMouseEvent * event)
 	{
 		rightDown = false;
 	}
-}
-
-void OpenGLWidget::keyPressEvent(QKeyEvent * ev)
-{
-	QVector3D move;
-	
-	if (ev->key() == Qt::Key_W)
-	{
-		move += camera->Forward;
-	}
-	if (ev->key() == Qt::Key_A)
-	{
-		move -= camera->Right;
-	}
-	if (ev->key() == Qt::Key_S)
-	{
-		move -= camera->Forward;
-	}
-	if (ev->key() == Qt::Key_D)
-	{
-		move += camera->Right;
-	}	
-	if (ev->key() == Qt::Key_Space)
-	{
-		move += camera->Up;
-	}
-	if (ev->key() == Qt::Key_X)
-	{
-		move -= camera->Up;
-	}
-
-	camera->CameraMove(camera->Position + move, camera->RotationEuler.x(), camera->RotationEuler.y());
-
-}
-
-void OpenGLWidget::keyReleaseEvent(QKeyEvent * ev)
-{
 }
 
 void OpenGLWidget::creatShader(QString vertexShader, QString fragmentShader)

@@ -45,6 +45,9 @@
     <ClCompile Include="Input.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ReadFile.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="QtOpenGl3d.h">
@@ -59,9 +62,15 @@
     <QtMoc Include="Input.h">
       <Filter>Header Files</Filter>
     </QtMoc>
+    <QtMoc Include="ReadFile.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="QtOpenGl3d.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="ReadFile.ui">
       <Filter>Form Files</Filter>
     </QtUic>
   </ItemGroup>

@@ -72,6 +72,8 @@ private:
 	Input *input;
 	const float sensitiveRotation = 0.2f;
 	const float sensitiveMove = 0.3f;
+
+	void myUpdate();
 signals:
 	void debugLog(QString log);
 

@@ -8,6 +8,7 @@
 #include "QtOpenGl3d.h"
 #include <QtMath>
 #include "Input.h"
+#include "ReadFile.h"
 
 OpenGLWidget::OpenGLWidget(QWidget *parent)
 	: QOpenGLWidget(parent)
@@ -33,7 +34,7 @@ void OpenGLWidget::initializeGL()
 	ourTexture1 = InitTexture("awesomeface.png");
 
 
-	glClearColor(0.5f, 0.0f, 1.0f, 1.0f);
+	glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
 	glEnable(GL_DEPTH_TEST);
 
 	int w = width();
@@ -174,6 +175,7 @@ void OpenGLWidget::paintGL()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	myUpdate();
 #pragma region input
 
 	QVector3D move;
@@ -195,11 +197,11 @@ void OpenGLWidget::paintGL()
 	}
 	if (Input::instance()->GetKeyHold(Qt::Key_Space))
 	{
-		move += camera->Up;
+		move += camera->WorldUp;
 	}
 	if (Input::instance()->GetKeyHold(Qt::Key_X))
 	{
-		move -= camera->Up;
+		move -= camera->WorldUp;
 	}
 	camera->CameraMove(camera->Position + move* sensitiveMove, camera->RotationEuler.x(), camera->RotationEuler.y());
 
@@ -368,7 +370,16 @@ QOpenGLTexture* OpenGLWidget::InitTexture(const QString imagePath)
 	return tex;
 }
 
+
 #pragma endregion
 
+
+void OpenGLWidget::myUpdate() 
+{
+	if (true)
+	{
+
+	}
+}
 
 

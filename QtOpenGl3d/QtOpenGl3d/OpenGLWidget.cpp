@@ -8,7 +8,7 @@
 #include "QtOpenGl3d.h"
 #include <QtMath>
 #include "Input.h"
-#include "ReadFile.h"
+#include "ReadGEOFile.h"
 
 OpenGLWidget::OpenGLWidget(QWidget *parent)
 	: QOpenGLWidget(parent)
@@ -16,6 +16,8 @@ OpenGLWidget::OpenGLWidget(QWidget *parent)
 	mousePos = new QPoint();
 	//this->grabKeyboard();
 	input = Input::instance();
+	vertex = NULL;
+	vertexNum = 0;
 }	
 
 OpenGLWidget::~OpenGLWidget()
@@ -176,37 +178,6 @@ void OpenGLWidget::paintGL()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	myUpdate();
-#pragma region input
-
-	QVector3D move;
-	if (Input::instance()->GetKeyHold(Qt::Key_W))
-	{
-		move += camera->Forward;
-	}
-	if (Input::instance()->GetKeyHold(Qt::Key_A))
-	{
-		move -= camera->Right;
-	}
-	if (Input::instance()->GetKeyHold(Qt::Key_S))
-	{
-		move -= camera->Forward;
-	}
-	if (Input::instance()->GetKeyHold(Qt::Key_D))
-	{
-		move += camera->Right;
-	}
-	if (Input::instance()->GetKeyHold(Qt::Key_Space))
-	{
-		move += camera->WorldUp;
-	}
-	if (Input::instance()->GetKeyHold(Qt::Key_X))
-	{
-		move -= camera->WorldUp;
-	}
-	camera->CameraMove(camera->Position + move* sensitiveMove, camera->RotationEuler.x(), camera->RotationEuler.y());
-
-#pragma endregion
-
 #pragma region shaderProgram vbo vao and ebo
 
 	program->bind();
@@ -214,18 +185,17 @@ void OpenGLWidget::paintGL()
 	vbo.create();
 	vbo.bind();
 
-	vbo.allocate(positionData, 36 * 5 * sizeof(GLfloat));
-	GLuint vPosition = program->attributeLocation("VertexPosition");
-	program->setAttributeBuffer(vPosition, GL_FLOAT, 0, 3, 8 * sizeof(GLfloat));
-	glEnableVertexAttribArray(vPosition);
+	//if (!vertex && vertexNum!= 0)
+	//{
+	//	vbo.allocate(positionData, vertexNum * 6 * sizeof(GLfloat));
+	//	GLuint vPosition = program->attributeLocation("VertexPosition");
+	//	program->setAttributeBuffer(vPosition, GL_FLOAT, 0, 3, 6 * sizeof(GLfloat));
+	//	glEnableVertexAttribArray(vPosition);
 
-	GLuint vTexCoord = program->attributeLocation("vTexCoord");
-	program->setAttributeBuffer(vTexCoord, GL_FLOAT, 3 * sizeof(GLfloat), 2, 8 * sizeof(GLfloat));
-	glEnableVertexAttribArray(vTexCoord);
-
-	GLuint vNormal = program->attributeLocation("vNormal");
-	program->setAttributeBuffer(vNormal, GL_FLOAT, 5 * sizeof(GLfloat), 3, 8 * sizeof(GLfloat));
-	glEnableVertexAttribArray(vNormal);
+	//	GLuint vNormal = program->attributeLocation("vNormal");
+	//	program->setAttributeBuffer(vNormal, GL_FLOAT, 3 * sizeof(GLfloat), 3, 6 * sizeof(GLfloat));
+	//	glEnableVertexAttribArray(vNormal);
+	//}
 
 	// index buffer object
 	//QOpenGLBuffer* ebo = new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
@@ -240,10 +210,10 @@ void OpenGLWidget::paintGL()
 
 #pragma region Texture
 
-	ourTexture->bind(0);
-	program->setUniformValue("ourTexture", 0);
-	ourTexture1->bind(1);
-	program->setUniformValue("ourTexture1", 1);
+	//ourTexture->bind(0);
+	//program->setUniformValue("ourTexture", 0);
+	//ourTexture1->bind(1);
+	//program->setUniformValue("ourTexture1", 1);
 
 #pragma endregion
 
@@ -276,7 +246,6 @@ void OpenGLWidget::paintGL()
 #pragma endregion
 
 }
-
 
 
 #pragma region Input
@@ -376,10 +345,51 @@ QOpenGLTexture* OpenGLWidget::InitTexture(const QString imagePath)
 
 void OpenGLWidget::myUpdate() 
 {
-	if (true)
+	if (Input::GetKeyDown(Qt::Key_Q))
 	{
-
+		ReadGeoFile* readFile = new ReadGeoFile;
+		readFile->show();
+		connect(readFile, SIGNAL(readFileCallBack(ReadGeoFile*)), this, SLOT(readFileCallBack(ReadGeoFile*)));
 	}
+
+
+#pragma region input
+
+	QVector3D move;
+	if (Input::instance()->GetKeyHold(Qt::Key_W))
+	{
+		move += camera->Forward;
+	}
+	if (Input::instance()->GetKeyHold(Qt::Key_A))
+	{
+		move -= camera->Right;
+	}
+	if (Input::instance()->GetKeyHold(Qt::Key_S))
+	{
+		move -= camera->Forward;
+	}
+	if (Input::instance()->GetKeyHold(Qt::Key_D))
+	{
+		move += camera->Right;
+	}
+	if (Input::instance()->GetKeyHold(Qt::Key_Space))
+	{
+		move += camera->WorldUp;
+	}
+	if (Input::instance()->GetKeyHold(Qt::Key_X))
+	{
+		move -= camera->WorldUp;
+	}
+	camera->CameraMove(camera->Position + move * sensitiveMove, camera->RotationEuler.x(), camera->RotationEuler.y());
+
+#pragma endregion
+
 }
 
 
+void OpenGLWidget::readFileCallBack(ReadGeoFile* readFile)
+{
+	disconnect(readFile, SIGNAL(readFileCallBack(ReadGeoFile*)), this, SLOT(readFileCallBack(ReadGeoFile*)));
+	vertex = readFile->VertexData;
+	vertexNum = readFile->VertexNum;
+}

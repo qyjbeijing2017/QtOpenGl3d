@@ -7,6 +7,7 @@
 #include <QBasicTimer>
 #include <QMatrix4x4>
 #include <QMouseEvent>
+#include "ReadGeoFile.h"
 
 
 //class Input;
@@ -15,6 +16,9 @@ class QOpenGLTexture;
 class Camera;
 class QtOpenGl3d;
 class Input;
+class ReadGEOFile;
+struct GEOVertexData;
+struct RfVector2D;
 class OpenGLWidget : public QOpenGLWidget, protected QOpenGLFunctions
 {
 	Q_OBJECT
@@ -30,7 +34,7 @@ protected:
 	void paintGL();
 	void timerEvent(QTimerEvent *e);
 
-	
+
 
 
 	//鼠标点击事件
@@ -40,7 +44,7 @@ protected:
 	//鼠标释放事件
 	void mouseReleaseEvent(QMouseEvent *event);
 
-	
+
 	//virtual void keyPressEvent(QKeyEvent *ev);
 	//virtual void keyReleaseEvent(QKeyEvent *ev);
 
@@ -65,7 +69,7 @@ private:
 	void creatShader(QString vertexShader, QString fragmentShader);
 
 	static QOpenGLTexture* InitTexture(const QString imagePath);
-	
+
 	float cameraPitch = 0.0f;
 	float cameraYaw = 0.0f;
 
@@ -74,7 +78,13 @@ private:
 	const float sensitiveMove = 0.3f;
 
 	void myUpdate();
+
+	QVector<GEOVertexData>* vertex;
+	int vertexNum;
+
 signals:
 	void debugLog(QString log);
 
+private slots:
+	void readFileCallBack(ReadGeoFile* readFile);
 };

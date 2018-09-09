@@ -14,7 +14,8 @@ uniform mat4 project;
 void main()
 {
     gl_Position = project * view * model * vec4( VertexPosition, 1.0 );
-	ourColor = vec3(0.3f,0.8f,0.6f);
+	//gl_Position = vec4( VertexPosition, 1.0 );
+	ourColor = vec3(1f,0.3f,0.6f);
 	Normal = vNormal;
 	FragPos = vec3(model * vec4(VertexPosition, 1.0));
 }

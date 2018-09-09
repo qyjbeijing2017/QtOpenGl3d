@@ -9,6 +9,7 @@
 #include <QtMath>
 #include "Input.h"
 #include "ReadGEOFile.h"
+#include <vector>
 
 OpenGLWidget::OpenGLWidget(QWidget *parent)
 	: QOpenGLWidget(parent)
@@ -16,9 +17,8 @@ OpenGLWidget::OpenGLWidget(QWidget *parent)
 	mousePos = new QPoint();
 	//this->grabKeyboard();
 	input = Input::instance();
-	vertex = NULL;
 	vertexNum = 0;
-}	
+}
 
 OpenGLWidget::~OpenGLWidget()
 {
@@ -47,10 +47,10 @@ void OpenGLWidget::initializeGL()
 	projectMatrix->perspective(45.0f, (GLfloat)w / (GLfloat)h, 0.001f, 100.0f);
 
 	//camera = new Camera(QVector3D(0, 0, -3), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
-	camera = new Camera(QVector3D(0, 0, 3), 180.0f, 0.0f, QVector3D(0, 1, 0));
+	camera = new Camera(QVector3D(0.5, 2, 2), 180.0f, -45.0f, QVector3D(0, 1, 0));
 
-	lightPos = QVector3D(1.0f, 1.0f, 1.0f);
-
+	lightDir = QVector3D(0.0f, -1.0f, 0.0f);
+	lightStrength = 0.5;
 	timer.start(12, this);
 
 	//Input::getInstance();
@@ -185,17 +185,66 @@ void OpenGLWidget::paintGL()
 	vbo.create();
 	vbo.bind();
 
-	//if (!vertex && vertexNum!= 0)
-	//{
-	//	vbo.allocate(positionData, vertexNum * 6 * sizeof(GLfloat));
-	//	GLuint vPosition = program->attributeLocation("VertexPosition");
-	//	program->setAttributeBuffer(vPosition, GL_FLOAT, 0, 3, 6 * sizeof(GLfloat));
-	//	glEnableVertexAttribArray(vPosition);
+	//vertex = new QVector<GEOVertexData>();
+	glEnable(GL_CULL_FACE);
+	glPolygonMode(GL_FRONT, GL_LINE);
 
-	//	GLuint vNormal = program->attributeLocation("vNormal");
-	//	program->setAttributeBuffer(vNormal, GL_FLOAT, 3 * sizeof(GLfloat), 3, 6 * sizeof(GLfloat));
-	//	glEnableVertexAttribArray(vNormal);
-	//}
+	if (vertex.count()!= 0)
+	{
+		vbo.allocate(&vertex[0], vertex.count() * sizeof(GEOVertexData));
+		GLuint vPosition = program->attributeLocation("VertexPosition");
+		program->setAttributeBuffer(vPosition, GL_FLOAT, 0, 3, sizeof(GEOVertexData));
+		glEnableVertexAttribArray(vPosition);
+
+		GLuint vNormal = program->attributeLocation("vNormal");
+		program->setAttributeBuffer(vNormal, GL_FLOAT, sizeof(Vector3D), 3, sizeof(GEOVertexData));
+		glEnableVertexAttribArray(vNormal);
+	}
+
+	//std::vector<float> pointer;
+	//pointer.push_back(0); pointer.push_back(0); pointer.push_back(0);       pointer.push_back(0); pointer.push_back(0); pointer.push_back(1);
+	//pointer.push_back(1); pointer.push_back(0); pointer.push_back(0);       pointer.push_back(0); pointer.push_back(0); pointer.push_back(1);
+	//pointer.push_back(0); pointer.push_back(1); pointer.push_back(0);       pointer.push_back(0); pointer.push_back(0); pointer.push_back(1);
+
+	//QVector<GEOVertexData> pointer;
+	//pointer << 0 << 0 << 0 << 0 << 0 << 1;
+	//pointer << 1 << 0 << 0 << 0 << 0 << 1;
+	//pointer << 0 << 1 << 0 << 0 << 0 << 1;
+
+	//QVector<float> * pointer = new QVector<float>();
+	//pointer->append(0); pointer->append(0); pointer->append(0);      pointer->append(0); pointer->append(0); pointer->append(1);
+	//pointer->append(1); pointer->append(0); pointer->append(0);      pointer->append(0); pointer->append(0); pointer->append(1);
+	//pointer->append(0); pointer->append(1); pointer->append(0);      pointer->append(0); pointer->append(0); pointer->append(1);
+
+	//GEOVertexData vertex1;
+	//vertex1.position = Vector3D(0, 0, 0);
+	//vertex1.normal = Vector3D(0, 0, 1);
+	//pointer.append(vertex1);
+	//GEOVertexData vertex2;
+	//vertex2.position = Vector3D(1, 0, 0);
+	//vertex2.normal = Vector3D(0, 0, 1);
+	//pointer.append(vertex2);
+	//GEOVertexData vertex3;
+	//vertex3.position = Vector3D(0, 1, 0);
+	//vertex3.normal = Vector3D(0, 0, 1);
+	//pointer.append(vertex3);
+
+
+	//float pointer[] = {
+	//	0,0,0, 0,0,1,
+	//	1,0,0, 0,0,1,
+	//	0,1,0, 0,0,1
+	//};
+	//vbo.allocate(&pointer[0], pointer.count() * sizeof(GEOVertexData));
+	//GLuint vPosition = program->attributeLocation("VertexPosition");
+	//program->setAttributeBuffer(vPosition, GL_FLOAT, 0, 3, sizeof(GEOVertexData));
+	//glEnableVertexAttribArray(vPosition);
+	//pointer.clear();
+
+	//GLuint vNormal = program->attributeLocation("vNormal");
+	//program->setAttributeBuffer(vNormal, GL_FLOAT, 3 * sizeof(float), 3, 6 * sizeof(float));
+	//glEnableVertexAttribArray(vNormal);
+
 
 	// index buffer object
 	//QOpenGLBuffer* ebo = new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
@@ -220,21 +269,19 @@ void OpenGLWidget::paintGL()
 #pragma region set uniform	
 	program->setUniformValue("view", camera->View);
 	program->setUniformValue("project", *projectMatrix);
-	program->setUniformValue("lightPos", lightPos);
+	program->setUniformValue("lightDirMy", lightDir);
+	program->setUniformValue("lightStrength", lightStrength);
 #pragma endregion
 
 #pragma region Render
 
-	for (unsigned int i = 0; i < 10; i++)
-	{
-		modelMatrix = new QMatrix4x4;
-		modelMatrix->translate(cubePositions[i]);
-		//modelMatrix->rotate(QTime::currentTime().msecsSinceStartOfDay() * 0.01f, 0.5f, 1.0f, 0.0f);
-		program->setUniformValue("model", *modelMatrix);
+	modelMatrix = new QMatrix4x4;
+	modelMatrix->scale(1, 1, 1);
+	//modelMatrix->rotate(QTime::currentTime().msecsSinceStartOfDay() * 0.01f, 0.5f, 1.0f, 0.0f);
+	program->setUniformValue("model", *modelMatrix);
 
 
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-	}
+	glDrawArrays(GL_TRIANGLES, 0, vertex.count());
 	//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 #pragma endregion
@@ -242,6 +289,7 @@ void OpenGLWidget::paintGL()
 #pragma region input & relase
 	vbo.release();		  //vboÊÍ·Å
 	input->keyHold();	  //input´¦Àí
+	//vertex->clear();
 
 #pragma endregion
 
@@ -272,17 +320,17 @@ void OpenGLWidget::mouseMoveEvent(QMouseEvent * event)
 {
 	if (rightDown)
 	{
-		
+
 		float xOffset = event->x() - mousePos->x();
 		float yOffset = event->y() - mousePos->y();
-		
+
 		cameraYaw += xOffset * sensitiveRotation;
 		cameraPitch += yOffset * sensitiveRotation;
 		if (cameraPitch > 89.0f)
 			cameraPitch = 89.0f;
 		if (cameraPitch < -89.0f)
 			cameraPitch = -89.0f;
-		
+
 		camera->CameraMove(camera->Position, cameraYaw, cameraPitch);
 		mousePos->setX(event->x());
 		mousePos->setY(event->y());
@@ -343,7 +391,7 @@ QOpenGLTexture* OpenGLWidget::InitTexture(const QString imagePath)
 #pragma endregion
 
 
-void OpenGLWidget::myUpdate() 
+void OpenGLWidget::myUpdate()
 {
 	if (Input::GetKeyDown(Qt::Key_Q))
 	{
@@ -390,6 +438,6 @@ void OpenGLWidget::myUpdate()
 void OpenGLWidget::readFileCallBack(ReadGeoFile* readFile)
 {
 	disconnect(readFile, SIGNAL(readFileCallBack(ReadGeoFile*)), this, SLOT(readFileCallBack(ReadGeoFile*)));
-	vertex = readFile->VertexData;
+	vertex = *readFile->VertexData;
 	vertexNum = readFile->VertexNum;
 }

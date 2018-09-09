@@ -64,7 +64,8 @@ private:
 	QPoint* mousePos;
 	bool rightDown = false;
 
-	QVector3D lightPos;
+	QVector3D lightDir;
+	float lightStrength;
 
 	void creatShader(QString vertexShader, QString fragmentShader);
 
@@ -74,12 +75,12 @@ private:
 	float cameraYaw = 0.0f;
 
 	Input *input;
-	const float sensitiveRotation = 0.2f;
-	const float sensitiveMove = 0.3f;
+	const float sensitiveRotation = 0.05f;
+	const float sensitiveMove = 0.03f;
 
 	void myUpdate();
 
-	QVector<GEOVertexData>* vertex;
+	QVector<GEOVertexData> vertex;
 	int vertexNum;
 
 signals:

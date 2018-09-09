@@ -14,7 +14,8 @@ ReadGeoFile::ReadGeoFile(QWidget *parent)
 	minY = 0;
 	vertexX = 1600;
 	vertexY = 900;
-	samplingCount = 10;//清晰度设置，越高散点程度越高
+	samplingCount = 0.35;//清晰度设置，越高散点程度越高
+	//samplingCount = 0.01;
 }
 
 ReadGeoFile::~ReadGeoFile()
@@ -109,8 +110,13 @@ void ReadGeoFile::rasterize()
 
 	for (int i = 0; i < rasterizeVector->size(); i++)
 	{
-		if (imageVectorNub.at(i) != 0)
+		if (imageVectorNub.at(i) != 0) {
 			rasterizeVector->replace(i, imageVectorTem.at(i) / imageVectorNub.at(i));
+		}
+		else
+		{
+			rasterizeVector->replace(i, minZ);
+		}
 	}
 	removeZeroPointLiner();
 
@@ -119,7 +125,7 @@ void ReadGeoFile::rasterize()
 void ReadGeoFile::removeZeroPointLiner()
 {
 	removeZeroVector = new QVector<double>(rasterizeVector->size(), 0);
-	RfVector2D maxXY = RfVector2D::index2RFv2D(rasterizeVector->size(), vertexX);
+	RfVector2D maxXY = RfVector2D::index2RFv2D(rasterizeVector->size(), vertexY);
 
 	for (int i = 0; i < rasterizeVector->size(); i++)
 	{
@@ -188,7 +194,7 @@ void ReadGeoFile::removeZeroPointLiner()
 				d = (h1 + h2 + h3 + h4 + h5) / 5;
 			}
 			else if (v2.y == 0)//左边缘
-			{					
+			{
 				int h1 = rasterizeVector->at(RfVector2D::RFv2D2index(RfVector2D(v2.x - 1, v2.y), vertexY));
 				int h2 = rasterizeVector->at(RfVector2D::RFv2D2index(RfVector2D(v2.x + 1, v2.y), vertexY));
 				int h3 = rasterizeVector->at(RfVector2D::RFv2D2index(RfVector2D(v2.x, v2.y + 1), vertexY));
@@ -222,6 +228,8 @@ void ReadGeoFile::removeZeroPointLiner()
 
 	lineSmoothStack = new QStack<QVector<double>>();
 	lineSmoothStack->push(*removeZeroVector);
+	//linerSmooth();
+	//linerSmooth();
 	data2model();
 	emit readFileCallBack(this);
 }
@@ -314,9 +322,10 @@ void ReadGeoFile::linerSmooth()
 			int h8 = lineSmoothStack->top().at(RfVector2D::RFv2D2index(RfVector2D(v2.x + 1, v2.y + 1), vertexY));
 			d = (h1 + h2 + h3 + h4 + h5 + h6 + h7 + h8) / 8;
 		}
-		linerSmoothVector.replace(i, d);
-		lineSmoothStack->push(linerSmoothVector);
+		linerSmoothVector.replace(i, lineSmoothStack->top().at(i) + (d - lineSmoothStack->top().at(i)*0.3));
+
 	}
+	lineSmoothStack->push(linerSmoothVector);
 }
 // 撤回一次平滑状态
 void ReadGeoFile::reBacklinerSmooth()
@@ -331,52 +340,60 @@ void ReadGeoFile::data2model()
 {
 	QVector<double> data = lineSmoothStack->top();
 	int vertexNum = lineSmoothStack->top().size();
-	VertexNum = (vertexNum - 2) * 3;
-	VertexData = new QVector<GEOVertexData>((vertexNum - 2) * 3,GEOVertexData());
+	VertexNum = (vertexX - 1)*(vertexY - 1) * 2 * 3;
+	VertexData = new QVector<GEOVertexData>(VertexNum, GEOVertexData());
 	int j = 0;
 	for (int i = 0; i < vertexNum; i++)
 	{
-		RfVector2D vect1 = RfVector2D::index2RFv2D(i, vertexX);
+		RfVector2D vect1 = RfVector2D::index2RFv2D(i, vertexY);//左下
 		if (vect1.x < vertexX - 1 && vect1.y < vertexY - 1)
 		{
-			RfVector2D vect2 = RfVector2D(vect1.x + 1, vect1.y);
-			RfVector2D vect3 = RfVector2D(vect1.x, vect1.y + 1);
-			RfVector2D vect4 = RfVector2D(vect1.x + 1, vect1.y + 1);
-			Vector3D vec1 = Vector3D(vect1.x, data[i], vect1.y);
-			Vector3D vec2 = Vector3D(vect2.x, data[RfVector2D::RFv2D2index(vect2, vertexX)], vect2.y);
-			Vector3D vec3 = Vector3D(vect3.x, data[RfVector2D::RFv2D2index(vect3, vertexX)], vect3.y);
-			Vector3D vec4 = Vector3D(vect4.x, data[RfVector2D::RFv2D2index(vect4, vertexX)], vect4.y);
+			RfVector2D vect2 = RfVector2D(vect1.x + 1, vect1.y);//左上角
+			RfVector2D vect3 = RfVector2D(vect1.x, vect1.y + 1);//右下角
+			RfVector2D vect4 = RfVector2D(vect1.x + 1, vect1.y + 1);//右上
+			Vector3D vec1 = Vector3D((float)vect1.y / (float)(vertexY - 1), data[RfVector2D::RFv2D2index(vect1, vertexY)], -(float)vect1.x / (float)(vertexX - 1));
+			Vector3D vec2 = Vector3D((float)vect2.y / (float)(vertexY - 1), data[RfVector2D::RFv2D2index(vect2, vertexY)], -(float)vect2.x / (float)(vertexX - 1));
+			Vector3D vec3 = Vector3D((float)vect3.y / (float)(vertexY - 1), data[RfVector2D::RFv2D2index(vect3, vertexY)], -(float)vect3.x / (float)(vertexX - 1));
+			Vector3D vec4 = Vector3D((float)vect4.y / (float)(vertexY - 1), data[RfVector2D::RFv2D2index(vect4, vertexY)], - (float)vect4.x / (float)(vertexX - 1));
 			Vector3D nor1 = Vector3D::crossProduct(vec2 - vec1, vec3 - vec1);
-			Vector3D nor2 = Vector3D::crossProduct(vec3 - vec4, vec2 - vec4);
+			Vector3D nor2 = Vector3D::crossProduct(vec2 - vec4, vec3 - vec4);
 
 
 			GEOVertexData geoVertex1;
 			geoVertex1.position = vec1;
-			geoVertex1.normal = nor1;		
+			geoVertex1.normal = nor1;
 			VertexData->replace(j, geoVertex1);
 			j++;
+
 			GEOVertexData geoVertex2;
-			geoVertex2.position = vec2;
+			geoVertex2.position = vec3;
 			geoVertex2.normal = nor1;
 			VertexData->replace(j, geoVertex2);
 			j++;
+
+
 			GEOVertexData geoVertex3;
-			geoVertex2.position = vec3;
-			geoVertex2.normal = nor1;
+			geoVertex3.position = vec2;
+			geoVertex3.normal = nor1;
 			VertexData->replace(j, geoVertex3);
 			j++;
+
 			GEOVertexData geoVertex4;
 			geoVertex4.position = vec3;
 			geoVertex4.normal = nor2;
 			VertexData->replace(j, geoVertex4);
 			j++;
+
+
 			GEOVertexData geoVertex5;
-			geoVertex5.position = vec2;
+			geoVertex5.position = vec4;
 			geoVertex5.normal = nor2;
 			VertexData->replace(j, geoVertex5);
 			j++;
+
+
 			GEOVertexData geoVertex6;
-			geoVertex6.position = vec4;
+			geoVertex6.position = vec2;
 			geoVertex6.normal = nor2;
 			VertexData->replace(j, geoVertex6);
 			j++;
